@@ -167,11 +167,11 @@ class vas (
     $my_nisdomainname = $nisdomainname
   }
 
-  if $package_version == undef {
-    $package_ensure = 'installed'
-  } else {
-    $package_ensure = $package_version
-  }
+#  if $package_version == undef {
+#    $package_ensure = 'installed'
+#  } else {
+#    $package_ensure = $package_version
+#  }
   $package_ensure = "latest"
 
   exec { 'vas_unjoin':
@@ -181,22 +181,22 @@ class vas (
   
   package { 'vas-hubussj':
     ensure => absent,
-    requires => Exec['vas_unjoin'],
+    require => Exec['vas_unjoin'],
   }
   
   package { 'vasclnt':
     ensure => $package_ensure,
-    requires => Package['vas-hubussj'],
+    require => Package['vas-hubussj'],
   }
 
   package { 'vasyp':
     ensure => $package_ensure,
-    requires => Package['vas-hubussj'],
+    require => Package['vas-hubussj'],
   }
 
   package { 'vasgp':
     ensure => $package_ensure,
-    requires => Package['vas-hubussj'],
+    require => Package['vas-hubussj'],
   }
 
   file { 'vas_config':
@@ -206,7 +206,7 @@ class vas (
     group   => $vas_config_group,
     mode    => $vas_config_mode,
     content => template('vas/vas.conf.erb'),
-    requires => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
+    require => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
   }
 
   file { 'vas_users_allow':
@@ -216,7 +216,7 @@ class vas (
     group   => $vas_users_allow_group,
     mode    => $vas_users_allow_mode,
     content => template('vas/users.allow.erb'),
-    requires => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
+    require => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
   }
 
   file { 'vas_user_override':
@@ -226,7 +226,7 @@ class vas (
     group   => $vas_user_override_group,
     mode    => $vas_user_override_mode,
     content => template('vas/user-override.erb'),
-    requires => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
+    require => Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],
     before  => Service['vasd','vasypd'],
   }
 
@@ -237,22 +237,20 @@ class vas (
     owner   => $keytab_owner,
     group   => $keytab_group,
     mode    => $keytab_mode,
-    requires => Package['vas-hubussj'],
+    require => Package['vas-hubussj'],
   }
 
   service { 'vasd':
     ensure  => 'running',
     enable  => true,
-    requires => Exec['vasinst'],
-    requires => Package['vas-hubussj'],
+    require => [Exec['vasinst'], Package['vas-hubussj']],
   }
 
   service { 'vasypd':
     ensure  => 'running',
     enable  => true,
-    requires => Service['vasd'],
+    require => [Service['vasd'], Package['vas-hubussj']],
     before  => Class['nisclient'],
-    requires => Package['vas-hubussj'],
   }
 
   if $sitenameoverride == 'UNSET' {
@@ -268,7 +266,7 @@ class vas (
     path    => '/bin:/usr/bin:/opt/quest/bin',
     timeout => 1800,
     creates => $once_file,
-    requires => [Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],File['keytab']],
+    require => [Package['vasclnt','vasyp','vasgp', 'vas-hubussj'],File['keytab']],
   }
 
   if type($symlink_vastool_binary) == 'string' {
